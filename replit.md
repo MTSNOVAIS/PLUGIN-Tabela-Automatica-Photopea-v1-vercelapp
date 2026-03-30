@@ -21,7 +21,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── football-table-plugin/ # Photopea plugin for football standings
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -34,6 +35,41 @@ artifacts-monorepo/
 ├── tsconfig.json           # Root TS project references
 └── package.json            # Root package with hoisted devDeps
 ```
+
+## Artifacts
+
+### `artifacts/football-table-plugin` (`@workspace/football-table-plugin`)
+
+A Photopea-compatible plugin for automating football standings table updates.
+
+**Features:**
+- League/season selector (Brasileirão, Premier League, La Liga, etc.)
+- Data from Sofascore API (with fallback mock data)
+- Batch update system: add 1, 2, 3, 5 or 10 positions at a time
+- Layer mapper: reads PSD layers and maps them to standings fields
+- Queue system: review changes before applying
+- Communicates with Photopea via `window.photopea.runScript()` and `postMessage`
+
+**Files:**
+- `src/types/football.ts` — type definitions, league list, POPULAR_LEAGUES config
+- `src/hooks/useSofascore.ts` — data fetching + fallback mock data
+- `src/hooks/usePhotopea.ts` — Photopea bridge (scripts, layer reading, text updates)
+- `src/components/LeagueSelector.tsx` — league/season dropdown
+- `src/components/StandingsTable.tsx` — table with batch grouping
+- `src/components/LayerMapper.tsx` — PSD layer mapping configuration
+- `src/components/UpdateQueue.tsx` — update queue management
+- `src/pages/PluginPage.tsx` — main plugin UI
+
+**How to use in Photopea:**
+1. Publish this app
+2. In Photopea: Extras → Plugins → Open Plugin → paste the URL
+3. Use the plugin panel to load standings, map layers, queue updates, and apply
+
+### `artifacts/api-server` (`@workspace/api-server`)
+
+Express 5 API server. Routes:
+- `GET /api/healthz` — health check
+- `GET /api/sofascore?url=<encoded_url>` — proxy for Sofascore API (adds proper headers)
 
 ## TypeScript & Composite Projects
 
@@ -66,14 +102,6 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 
 Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
 
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
 ### `lib/api-spec` (`@workspace/api-spec`)
 
 Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
@@ -82,15 +110,3 @@ Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.t
 2. `lib/api-zod/src/generated/` — Zod schemas
 
 Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
