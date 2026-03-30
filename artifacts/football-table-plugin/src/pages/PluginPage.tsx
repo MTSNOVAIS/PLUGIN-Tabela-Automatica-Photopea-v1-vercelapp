@@ -10,23 +10,30 @@ import { UpdateQueue } from "@/components/UpdateQueue";
 import { LayerMapper } from "@/components/LayerMapper";
 import { useSofascore } from "@/hooks/useSofascore";
 import { usePhotopea } from "@/hooks/usePhotopea";
-import type { TeamStanding, LayerMapping } from "@/types/football";
+import type { TeamStanding, LayerConfig, PsdScanResult } from "@/types/football";
 
 const PLUGIN_LOGO = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRnzhDYO9zajTF_4o-5bqTLMWCjKVHiRcdJA&s";
+
+const DEFAULT_CONFIG: LayerConfig = {
+  groupPrefix: "",
+  fieldMap: {},
+};
 
 export default function PluginPage() {
   const { toast } = useToast();
   const [selectedLeague, setSelectedLeague] = useState<string>("");
   const [selectedSeason, setSelectedSeason] = useState<string>("");
   const [batchSize, setBatchSize] = useState<number>(3);
-  const [layerMappings, setLayerMappings] = useState<LayerMapping[]>([]);
+  const [layerConfig, setLayerConfig] = useState<LayerConfig>(DEFAULT_CONFIG);
+  const [scanResult, setScanResult] = useState<PsdScanResult | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   const [updateQueue, setUpdateQueue] = useState<TeamStanding[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatedCount, setUpdatedCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"standings" | "mapper" | "queue">("standings");
 
   const { standings, isLoading, error, fetchStandings } = useSofascore();
-  const { applyUpdates, readLayers, isPhotopea } = usePhotopea();
+  const { scanPsd, applyUpdates, isPhotopea } = usePhotopea();
 
   const handleLeagueChange = useCallback(async (leagueId: string, seasonId: string) => {
     setSelectedLeague(leagueId);
@@ -38,14 +45,10 @@ export default function PluginPage() {
 
   const handleAddToQueue = useCallback((team: TeamStanding) => {
     setUpdateQueue(prev => {
-      const exists = prev.find(t => t.position === team.position);
-      if (exists) return prev;
+      if (prev.find(t => t.position === team.position)) return prev;
       return [...prev, team].sort((a, b) => a.position - b.position);
     });
-    toast({
-      title: "Adicionado à fila",
-      description: `${team.team.name} (${team.position}º) adicionado`,
-    });
+    toast({ title: "Adicionado à fila", description: `${team.team.name} (${team.position}º)` });
   }, [toast]);
 
   const handleAddBatch = useCallback((startPos: number) => {
@@ -55,10 +58,7 @@ export default function PluginPage() {
       const newItems = batch.filter(t => !prev.find(p => p.position === t.position));
       return [...prev, ...newItems].sort((a, b) => a.position - b.position);
     });
-    toast({
-      title: `${batch.length} posições adicionadas`,
-      description: `Posições ${startPos} a ${startPos + batch.length - 1}`,
-    });
+    toast({ title: `${batch.length} posições adicionadas`, description: `Pos. ${startPos} a ${startPos + batch.length - 1}` });
   }, [standings, batchSize, toast]);
 
   const handleAddAll = useCallback(() => {
@@ -75,28 +75,43 @@ export default function PluginPage() {
     setUpdatedCount(0);
   }, []);
 
-  const handleReadLayers = useCallback(async () => {
+  const handleScan = useCallback(async (prefix: string) => {
+    setIsScanning(true);
     try {
-      const layers = await readLayers();
-      setLayerMappings(layers);
-      toast({ title: "Layers lidos", description: `${layers.length} layers encontrados` });
+      const result = await scanPsd(prefix);
+      setScanResult(result);
+      if (result.groups.length > 0) {
+        toast({
+          title: "PSD escaneado",
+          description: `${result.groups.length} grupos e ${result.layerNames.length} layers de texto encontrados`,
+        });
+      } else {
+        toast({
+          title: "Nenhum grupo numerado encontrado",
+          description: "Verifique o prefixo ou abra um PSD primeiro",
+          variant: "destructive",
+        });
+      }
     } catch {
-      toast({ title: "Erro ao ler layers", description: "Abra um PSD no Photopea primeiro", variant: "destructive" });
+      toast({ title: "Erro ao escanear", description: "Abra um PSD no Photopea primeiro", variant: "destructive" });
+    } finally {
+      setIsScanning(false);
     }
-  }, [readLayers, toast]);
+  }, [scanPsd, toast]);
 
   const handleApplyUpdates = useCallback(async () => {
     if (!updateQueue.length) {
       toast({ title: "Fila vazia", description: "Adicione posições à fila primeiro", variant: "destructive" });
       return;
     }
-    if (!layerMappings.length && isPhotopea) {
-      toast({ title: "Nenhum mapping configurado", description: "Configure o mapeamento de layers primeiro", variant: "destructive" });
+    const mappedFields = Object.values(layerConfig.fieldMap).filter(Boolean).length;
+    if (mappedFields === 0 && isPhotopea) {
+      toast({ title: "Nenhum campo mapeado", description: "Configure os layers na aba Layers primeiro", variant: "destructive" });
       return;
     }
     setIsUpdating(true);
     try {
-      await applyUpdates(updateQueue, layerMappings);
+      await applyUpdates(updateQueue, layerConfig);
       setUpdatedCount(prev => prev + updateQueue.length);
       toast({ title: "Atualização concluída!", description: `${updateQueue.length} posições atualizadas no Photopea` });
       setUpdateQueue([]);
@@ -105,7 +120,7 @@ export default function PluginPage() {
     } finally {
       setIsUpdating(false);
     }
-  }, [updateQueue, layerMappings, applyUpdates, isPhotopea, toast]);
+  }, [updateQueue, layerConfig, applyUpdates, isPhotopea, toast]);
 
   void selectedLeague;
   void selectedSeason;
@@ -176,7 +191,7 @@ export default function PluginPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {[1, 2, 3, 4, 5, 10].map(n => (
+                      {[1, 2, 3, 5, 10].map(n => (
                         <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
                       ))}
                     </SelectContent>
@@ -211,11 +226,12 @@ export default function PluginPage() {
 
         {activeTab === "mapper" && (
           <LayerMapper
-            layerMappings={layerMappings}
-            onReadLayers={handleReadLayers}
-            onUpdateMappings={setLayerMappings}
-            standingsCount={standings.length}
+            config={layerConfig}
+            scanResult={scanResult}
+            isScanning={isScanning}
             isPhotopea={isPhotopea}
+            onScan={handleScan}
+            onConfigChange={setLayerConfig}
           />
         )}
 

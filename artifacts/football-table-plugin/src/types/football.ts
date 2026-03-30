@@ -37,20 +37,61 @@ export interface Season {
   year: string;
 }
 
-export type LayerType = "position" | "team_name" | "team_short" | "points" | "played" | "wins" | "draws" | "losses" | "goals_for" | "goals_against" | "goal_diff" | "form";
+export type LayerType =
+  | "position"
+  | "team_name"
+  | "team_short"
+  | "points"
+  | "played"
+  | "wins"
+  | "draws"
+  | "losses"
+  | "goals_for"
+  | "goals_against"
+  | "goal_diff";
 
-export interface LayerMapping {
-  position: number;
-  layerName: string;
-  field: LayerType;
-  layerPath?: string;
+export const LAYER_TYPE_LABELS: Record<LayerType, string> = {
+  position: "Posição",
+  team_name: "Nome do Time",
+  team_short: "Nome Curto",
+  points: "Pontos",
+  played: "Jogos",
+  wins: "Vitórias",
+  draws: "Empates",
+  losses: "Derrotas",
+  goals_for: "Gols Pró",
+  goals_against: "Gols Contra",
+  goal_diff: "Saldo",
+};
+
+export const REQUIRED_FIELDS: LayerType[] = ["position", "team_name", "points"];
+export const OPTIONAL_FIELDS: LayerType[] = ["played", "wins", "draws", "losses", "goals_for", "goals_against", "goal_diff", "team_short"];
+
+export interface LayerConfig {
+  groupPrefix: string;
+  fieldMap: Partial<Record<LayerType, string>>;
 }
 
-export interface PhotopeaLayer {
-  name: string;
-  type: "text" | "group" | "image" | "other";
-  path: string;
-  children?: PhotopeaLayer[];
+export interface PsdScanResult {
+  groups: string[];
+  layerNames: string[];
+}
+
+export function getFieldValue(standing: TeamStanding, field: LayerType): string {
+  switch (field) {
+    case "position": return String(standing.position);
+    case "team_name": return standing.team.name;
+    case "team_short": return standing.team.shortName || standing.team.nameCode || standing.team.name.substring(0, 3).toUpperCase();
+    case "points": return String(standing.points);
+    case "played": return String(standing.played);
+    case "wins": return String(standing.wins);
+    case "draws": return String(standing.draws);
+    case "losses": return String(standing.losses);
+    case "goals_for": return String(standing.goalsFor);
+    case "goals_against": return String(standing.goalsAgainst);
+    case "goal_diff": return standing.goalDifference >= 0 ? `+${standing.goalDifference}` : String(standing.goalDifference);
+    default: return "";
+  }
 }
 
 export const POPULAR_LEAGUES: League[] = [
@@ -141,36 +182,3 @@ export const POPULAR_LEAGUES: League[] = [
     ]
   },
 ];
-
-export const LAYER_TYPE_LABELS: Record<LayerType, string> = {
-  position: "Posição",
-  team_name: "Nome do Time",
-  team_short: "Nome Curto",
-  points: "Pontos",
-  played: "Jogos",
-  wins: "Vitórias",
-  draws: "Empates",
-  losses: "Derrotas",
-  goals_for: "Gols Pró",
-  goals_against: "Gols Contra",
-  goal_diff: "Saldo",
-  form: "Forma",
-};
-
-export function getFieldValue(standing: TeamStanding, field: LayerType): string {
-  switch (field) {
-    case "position": return String(standing.position);
-    case "team_name": return standing.team.name;
-    case "team_short": return standing.team.shortName || standing.team.nameCode || standing.team.name.substring(0, 3).toUpperCase();
-    case "points": return String(standing.points);
-    case "played": return String(standing.played);
-    case "wins": return String(standing.wins);
-    case "draws": return String(standing.draws);
-    case "losses": return String(standing.losses);
-    case "goals_for": return String(standing.goalsFor);
-    case "goals_against": return String(standing.goalsAgainst);
-    case "goal_diff": return standing.goalDifference >= 0 ? `+${standing.goalDifference}` : String(standing.goalDifference);
-    case "form": return standing.form || "";
-    default: return "";
-  }
-}
