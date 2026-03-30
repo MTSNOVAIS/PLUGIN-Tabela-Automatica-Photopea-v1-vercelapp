@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "MzqX58R8Ltj9MOI_uE5Fr"
+uri = "file://artifacts/football-table-plugin/public/photopea-plugin.json"
+type = "unspecified"
+title = "photopea-plugin.json"

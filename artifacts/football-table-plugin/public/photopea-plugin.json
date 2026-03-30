@@ -1,17 +1,7 @@
 {
   "name": "Tabela de Futebol",
-  "description": "Atualiza automaticamente tabelas de futebol no Photopea usando dados do Sofascore. Suporta atualização gradual por lotes.",
+  "description": "Atualiza tabelas de futebol automaticamente com dados do Sofascore. Selecione a liga, configure o mapeamento de layers e aplique as atualizações em lotes no seu PSD.",
   "version": "1.0.0",
-  "author": "Replit Agent",
-  "icon": "icon.png",
-  "keywords": ["futebol", "tabela", "sofascore", "automação"],
-  "panels": [
-    {
-      "name": "Tabela de Futebol",
-      "url": "__PLUGIN_URL__",
-      "width": 340,
-      "height": 600,
-      "resizable": true
-    }
-  ]
+  "url": "https://b4e8f017-092d-4e78-9d02-5ec0801ddb05-00-vjrn6aucqj0g.picard.replit.dev/",
+  "size": [340, 600]
 }
