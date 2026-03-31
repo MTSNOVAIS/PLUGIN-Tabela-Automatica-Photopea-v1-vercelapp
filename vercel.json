@@ -1,11 +1,10 @@
 {
   "version": 2,
+  "framework": null,
   "installCommand": "pnpm install",
   "buildCommand": "pnpm --filter @workspace/football-table-plugin run build",
   "outputDirectory": "artifacts/football-table-plugin/dist/public",
   "rewrites": [
-    { "source": "/api/sofascore", "destination": "/api/sofascore" },
-    { "source": "/api/healthz", "destination": "/api/healthz" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
