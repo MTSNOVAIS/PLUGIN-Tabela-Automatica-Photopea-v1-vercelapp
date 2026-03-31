@@ -1,5 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
@@ -11,48 +12,22 @@ import { useSofascore } from "@/hooks/useSofascore";
 import { usePhotopea } from "@/hooks/usePhotopea";
 import type { TeamStanding, LayerConfig } from "@/types/football";
 
-const STORAGE_KEY = "football-plugin-state";
-
-interface SavedState {
-  layerConfig: LayerConfig;
-  batchSize: number;
-  lastLeagueId: string;
-  lastSeasonId: string;
-}
-
-function loadState(): Partial<SavedState> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    return JSON.parse(raw) as Partial<SavedState>;
-  } catch {
-    return {};
-  }
-}
-
-function saveState(state: Partial<SavedState>) {
-  try {
-    const current = loadState();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...current, ...state }));
-  } catch {
-    // localStorage não disponível (não crítico)
-  }
-}
-
-const saved = loadState();
-
-const DEFAULT_CONFIG: LayerConfig = { groupPrefix: "", fieldMap: {} };
+const DEFAULT_CONFIG: LayerConfig = {
+  groupPrefix: "",
+  fieldMap: {},
+};
 
 export default function PluginPage() {
   const { toast } = useToast();
-  const [batchSize, setBatchSize] = useState<number>(saved.batchSize ?? 3);
-  const [layerConfig, setLayerConfig] = useState<LayerConfig>(saved.layerConfig ?? DEFAULT_CONFIG);
+  const [selectedLeague, setSelectedLeague] = useState<string>("");
+  const [selectedSeason, setSelectedSeason] = useState<string>("");
+  const [batchSize, setBatchSize] = useState<number>(3);
+  const [layerConfig, setLayerConfig] = useState<LayerConfig>(DEFAULT_CONFIG);
   const [updateQueue, setUpdateQueue] = useState<TeamStanding[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatedCount, setUpdatedCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"standings" | "mapper" | "queue">("standings");
   const [nextBatchIndex, setNextBatchIndex] = useState(0);
-  const [updateProgress, setUpdateProgress] = useState<{ done: number; total: number } | null>(null);
 
   const { standings, isLoading, error, fetchStandings } = useSofascore();
   const { applyUpdates, isPhotopea } = usePhotopea();
@@ -61,27 +36,14 @@ export default function PluginPage() {
     ? Math.max(...standings.map(s => s.played))
     : null;
 
-  // Persistir layerConfig
-  useEffect(() => {
-    saveState({ layerConfig });
-  }, [layerConfig]);
-
-  // Persistir batchSize
-  useEffect(() => {
-    saveState({ batchSize });
-  }, [batchSize]);
-
   const handleLeagueChange = useCallback(async (leagueId: string, seasonId: string) => {
-    saveState({ lastLeagueId: leagueId, lastSeasonId: seasonId });
+    setSelectedLeague(leagueId);
+    setSelectedSeason(seasonId);
     setUpdateQueue([]);
     setUpdatedCount(0);
     setNextBatchIndex(0);
     await fetchStandings(leagueId, seasonId);
   }, [fetchStandings]);
-
-  const handleLayerConfigChange = useCallback((config: LayerConfig) => {
-    setLayerConfig(config);
-  }, []);
 
   const handleAddToQueue = useCallback((team: TeamStanding) => {
     setUpdateQueue(prev => {
@@ -135,6 +97,8 @@ export default function PluginPage() {
     setUpdatedCount(0);
   }, []);
 
+  const [updateProgress, setUpdateProgress] = useState<{ done: number; total: number } | null>(null);
+
   const handleApplyUpdates = useCallback(async () => {
     if (!updateQueue.length) {
       toast({ title: "Fila vazia", description: "Adicione posições à fila primeiro", variant: "destructive" });
@@ -163,22 +127,34 @@ export default function PluginPage() {
     }
   }, [updateQueue, layerConfig, applyUpdates, isPhotopea, toast]);
 
+  void selectedLeague;
+  void selectedSeason;
+
   const progress = standings.length > 0 ? (updatedCount / standings.length) * 100 : 0;
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      {currentRound !== null && (
-        <header className="px-3 py-1.5 border-b border-border flex items-center justify-center">
-          <span className="text-xs font-semibold text-muted-foreground">Rodada {currentRound}</span>
-        </header>
-      )}
+      <header className="px-3 py-2 border-b border-border flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold leading-tight">Tabela de Futebol</span>
+          {isPhotopea ? (
+            <Badge variant="outline" className="text-xs text-green-600 border-green-500">Photopea</Badge>
+          ) : (
+            <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500">Prévia</Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {currentRound !== null && (
+            <Badge variant="secondary" className="text-xs">Rodada {currentRound}</Badge>
+          )}
+          {updatedCount > 0 && (
+            <Badge variant="secondary" className="text-xs">{updatedCount}/{standings.length} atualizados</Badge>
+          )}
+        </div>
+      </header>
 
       <div className="px-3 py-2 border-b border-border">
-        <LeagueSelector
-          onLeagueChange={handleLeagueChange}
-          isLoading={isLoading}
-          initialLeagueId={saved.lastLeagueId}
-        />
+        <LeagueSelector onLeagueChange={handleLeagueChange} isLoading={isLoading} />
       </div>
 
       {updateProgress && (
@@ -270,7 +246,7 @@ export default function PluginPage() {
           <LayerMapper
             config={layerConfig}
             isPhotopea={isPhotopea}
-            onConfigChange={handleLayerConfigChange}
+            onConfigChange={setLayerConfig}
           />
         )}
 

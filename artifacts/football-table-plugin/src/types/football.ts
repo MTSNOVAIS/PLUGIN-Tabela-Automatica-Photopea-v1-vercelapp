@@ -130,7 +130,7 @@ export const POPULAR_LEAGUES: League[] = [
   { id: "por.2", name: "Segunda Liga", country: "Portugal", slug: "por.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
   // Europa — 2ª divisão
   { id: "eng.2", name: "Championship", country: "Inglaterra", slug: "eng.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
-  { id: "esp.2", name: "La Liga 2", country: "Espanha", slug: "esp.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
+  { id: "esp.2", name: "Segunda División", country: "Espanha", slug: "esp.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
   { id: "ita.2", name: "Serie B", country: "Itália", slug: "ita.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
   { id: "ger.2", name: "2. Bundesliga", country: "Alemanha", slug: "ger.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
   { id: "fra.2", name: "Ligue 2", country: "França", slug: "fra.2", seasons: [{ id: "current", name: "2024/25", year: "2025" }] },
