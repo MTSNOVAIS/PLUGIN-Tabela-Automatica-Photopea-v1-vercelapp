@@ -120,6 +120,7 @@ Toda vez que você fizer um push (enviar alterações) para o repositório Git, 
 | Problema | Solução |
 |---|---|
 | Erro: "No entrypoint found in output directory" | O Vercel está tratando o projeto como Node.js. Confirme que o `vercel.json` na raiz contém `"framework": null`. |
+| Erro: "No Output Directory named 'public' found" | O build falhou internamente. Verifique se o Vercel está usando Node.js 20 ou superior em **Settings → General → Node.js Version**. Versões anteriores ao Node.js 21.2 não suportam `import.meta.dirname` — o `vite.config.ts` já está corrigido para usar `fileURLToPath` como alternativa compatível. |
 | Build falhou com erro de `pnpm` | Certifique-se de que o Vercel está usando Node.js 20. Vá em **Settings → General → Node.js Version** e selecione `20.x`. |
 | API retornando erro 404 | Verifique se os arquivos `api/sofascore.js` e `api/healthz.js` estão na raiz do repositório. |
 | Plugin não carrega no Photopea | Certifique-se de que a URL usada no Photopea é exatamente a URL do Vercel (com `https://`). |
