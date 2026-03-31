@@ -7,7 +7,7 @@ interface StandingsTableProps {
   error: string | null;
   batchSize: number;
   onAddTeam: (team: TeamStanding) => void;
-  onAddBatch: (startPos: number) => void;
+  onAddBatch: (startPos?: number) => void;
   queuedPositions: number[];
 }
 
