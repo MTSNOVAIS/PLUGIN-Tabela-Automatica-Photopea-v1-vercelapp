@@ -47,7 +47,7 @@ Ao importar, o Vercel lerá o arquivo `vercel.json` automaticamente. **Não é n
 |---|---|
 | Framework | None (desativado via `vercel.json`) |
 | Install Command | `pnpm install` |
-| Build Command | `pnpm --filter @workspace/football-table-plugin run build` |
+| Build Command | `pnpm --filter @workspace/football-table-plugin run build && mkdir -p public && cp -r artifacts/football-table-plugin/dist/public/. public/` |
 | Output Directory | `public` |
 
 > **Importante:** O arquivo `vercel.json` já contém `"framework": null`, que desativa a detecção automática de framework. Isso é necessário porque o Vercel, ao ver um monorepo com múltiplos pacotes, pode confundir o projeto com um app Node.js em vez de um site estático. **Não altere essa configuração.**
