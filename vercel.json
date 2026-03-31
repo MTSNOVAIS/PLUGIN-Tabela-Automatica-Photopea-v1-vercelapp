@@ -1,10 +1,4 @@
 {
-  "version": 2,
-  "framework": null,
-  "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @workspace/football-table-plugin run build && mkdir -p public && cp -r artifacts/football-table-plugin/dist/public/. public/",
-  "outputDirectory": "public",
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
+  "_comment": "Para deploy no Vercel, configure Root Directory como: artifacts/football-table-plugin",
+  "version": 2
 }
