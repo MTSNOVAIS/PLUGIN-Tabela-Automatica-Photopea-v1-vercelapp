@@ -5,6 +5,7 @@ import { POPULAR_LEAGUES, type League, type Season } from "@/types/football";
 interface LeagueSelectorProps {
   onLeagueChange: (leagueId: string, seasonId: string) => void;
   isLoading: boolean;
+  initialLeagueId?: string;
 }
 
 const COUNTRY_ORDER = ["Brasil"];
@@ -26,12 +27,15 @@ function groupByCountry(leagues: League[]): { country: string; leagues: League[]
   return countries.map(c => ({ country: c, leagues: map.get(c)! }));
 }
 
-export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProps) {
-  const [selectedLeague, setSelectedLeague] = useState<League | null>(POPULAR_LEAGUES[0]);
-  const [selectedSeason, setSelectedSeason] = useState<Season | null>(POPULAR_LEAGUES[0].seasons[0]);
+export function LeagueSelector({ onLeagueChange, isLoading, initialLeagueId }: LeagueSelectorProps) {
+  const initial = (initialLeagueId ? POPULAR_LEAGUES.find(l => l.id === initialLeagueId) : null) ?? POPULAR_LEAGUES[0];
+  const [selectedLeague, setSelectedLeague] = useState<League | null>(initial);
+  const [selectedSeason, setSelectedSeason] = useState<Season | null>(initial.seasons[0]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
-  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set(["Brasil"]));
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(
+    new Set([initial.country, "Brasil"].filter(Boolean))
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
