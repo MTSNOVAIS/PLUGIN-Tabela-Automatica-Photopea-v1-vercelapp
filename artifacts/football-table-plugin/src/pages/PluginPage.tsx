@@ -129,7 +129,7 @@ export default function PluginPage() {
     setUpdateProgress({ done: 0, total: updateQueue.length });
     const snapshot = [...updateQueue];
     try {
-      await applyUpdates(snapshot, layerConfig, (done, total) => {
+      await applyUpdates(snapshot, layerConfig, scanResult?.groupMap ?? {}, (done, total) => {
         setUpdateProgress({ done, total });
       });
       setUpdatedCount(prev => prev + snapshot.length);
@@ -141,7 +141,7 @@ export default function PluginPage() {
       setIsUpdating(false);
       setUpdateProgress(null);
     }
-  }, [updateQueue, layerConfig, applyUpdates, isPhotopea, toast]);
+  }, [updateQueue, layerConfig, scanResult, applyUpdates, isPhotopea, toast]);
 
   void selectedLeague;
   void selectedSeason;

@@ -75,6 +75,8 @@ export interface LayerConfig {
 export interface PsdScanResult {
   groups: string[];
   layerNames: string[];
+  /** Maps position number → actual PSD group name (handles "01"/"1"/etc.) */
+  groupMap: Record<number, string>;
 }
 
 export function getFieldValue(standing: TeamStanding, field: LayerType): string {
