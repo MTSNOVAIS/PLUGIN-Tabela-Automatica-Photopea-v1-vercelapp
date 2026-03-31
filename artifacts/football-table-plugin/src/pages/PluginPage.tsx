@@ -10,9 +10,7 @@ import { UpdateQueue } from "@/components/UpdateQueue";
 import { LayerMapper } from "@/components/LayerMapper";
 import { useSofascore } from "@/hooks/useSofascore";
 import { usePhotopea } from "@/hooks/usePhotopea";
-import type { TeamStanding, LayerConfig, PsdScanResult } from "@/types/football";
-
-const PLUGIN_LOGO = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSRnzhDYO9zajTF_4o-5bqTLMWCjKVHiRcdJA&s";
+import type { TeamStanding, LayerConfig } from "@/types/football";
 
 const DEFAULT_CONFIG: LayerConfig = {
   groupPrefix: "",
@@ -25,21 +23,25 @@ export default function PluginPage() {
   const [selectedSeason, setSelectedSeason] = useState<string>("");
   const [batchSize, setBatchSize] = useState<number>(3);
   const [layerConfig, setLayerConfig] = useState<LayerConfig>(DEFAULT_CONFIG);
-  const [scanResult, setScanResult] = useState<PsdScanResult | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
   const [updateQueue, setUpdateQueue] = useState<TeamStanding[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updatedCount, setUpdatedCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"standings" | "mapper" | "queue">("standings");
+  const [nextBatchIndex, setNextBatchIndex] = useState(0);
 
   const { standings, isLoading, error, fetchStandings } = useSofascore();
-  const { scanPsd, applyUpdates, isPhotopea } = usePhotopea();
+  const { applyUpdates, isPhotopea } = usePhotopea();
+
+  const currentRound = standings.length > 0
+    ? Math.max(...standings.map(s => s.played))
+    : null;
 
   const handleLeagueChange = useCallback(async (leagueId: string, seasonId: string) => {
     setSelectedLeague(leagueId);
     setSelectedSeason(seasonId);
     setUpdateQueue([]);
     setUpdatedCount(0);
+    setNextBatchIndex(0);
     await fetchStandings(leagueId, seasonId);
   }, [fetchStandings]);
 
@@ -51,32 +53,38 @@ export default function PluginPage() {
     toast({ title: "Adicionado à fila", description: `${team.team.name} (${team.position}º)` });
   }, [toast]);
 
-  const handleAddBatch = useCallback((startPos?: number) => {
+  const handleAddBatch = useCallback(() => {
     if (!standings.length) return;
 
-    // Compute batch outside setState so we can toast with the result
-    setUpdateQueue(prev => {
-      const queued = new Set(prev.map(t => t.position));
-      const from = startPos ?? (standings.find(t => !queued.has(t.position))?.position ?? 1);
-      const batch = standings
-        .filter(t => t.position >= from && !queued.has(t.position))
-        .slice(0, batchSize);
+    setNextBatchIndex(prev => {
+      const batch = standings.slice(prev, prev + batchSize);
+      if (batch.length === 0) {
+        toast({ title: "Fim da tabela", description: "Todas as posições já foram processadas", variant: "destructive" });
+        return prev;
+      }
 
-      if (batch.length === 0) return prev;
+      setUpdateQueue(q => {
+        const queued = new Set(q.map(t => t.position));
+        const toAdd = batch.filter(t => !queued.has(t.position));
+        if (toAdd.length === 0) return q;
 
-      const first = batch[0].position;
-      const last = batch[batch.length - 1].position;
-      toast({
-        title: `${batch.length} posições adicionadas`,
-        description: `Pos. ${first}${last !== first ? ` a ${last}` : ""}`,
+        const first = batch[0].position;
+        const last = batch[batch.length - 1].position;
+        toast({
+          title: `${toAdd.length} posições adicionadas`,
+          description: `Pos. ${first}${last !== first ? ` a ${last}` : ""}`,
+        });
+
+        return [...q, ...toAdd].sort((a, b) => a.position - b.position);
       });
 
-      return [...prev, ...batch].sort((a, b) => a.position - b.position);
+      return prev + batchSize;
     });
   }, [standings, batchSize, toast]);
 
   const handleAddAll = useCallback(() => {
     setUpdateQueue([...standings].sort((a, b) => a.position - b.position));
+    setNextBatchIndex(standings.length);
     toast({ title: "Todos adicionados", description: `${standings.length} equipes na fila` });
   }, [standings, toast]);
 
@@ -88,30 +96,6 @@ export default function PluginPage() {
     setUpdateQueue([]);
     setUpdatedCount(0);
   }, []);
-
-  const handleScan = useCallback(async (prefix: string) => {
-    setIsScanning(true);
-    try {
-      const result = await scanPsd(prefix);
-      setScanResult(result);
-      if (result.groups.length > 0) {
-        toast({
-          title: "PSD escaneado",
-          description: `${result.groups.length} grupos e ${result.layerNames.length} layers de texto encontrados`,
-        });
-      } else {
-        toast({
-          title: "Nenhum grupo numerado encontrado",
-          description: "Verifique o prefixo ou abra um PSD primeiro",
-          variant: "destructive",
-        });
-      }
-    } catch {
-      toast({ title: "Erro ao escanear", description: "Abra um PSD no Photopea primeiro", variant: "destructive" });
-    } finally {
-      setIsScanning(false);
-    }
-  }, [scanPsd, toast]);
 
   const [updateProgress, setUpdateProgress] = useState<{ done: number; total: number } | null>(null);
 
@@ -129,7 +113,7 @@ export default function PluginPage() {
     setUpdateProgress({ done: 0, total: updateQueue.length });
     const snapshot = [...updateQueue];
     try {
-      await applyUpdates(snapshot, layerConfig, scanResult?.groupMap ?? {}, (done, total) => {
+      await applyUpdates(snapshot, layerConfig, {}, (done, total) => {
         setUpdateProgress({ done, total });
       });
       setUpdatedCount(prev => prev + snapshot.length);
@@ -141,7 +125,7 @@ export default function PluginPage() {
       setIsUpdating(false);
       setUpdateProgress(null);
     }
-  }, [updateQueue, layerConfig, scanResult, applyUpdates, isPhotopea, toast]);
+  }, [updateQueue, layerConfig, applyUpdates, isPhotopea, toast]);
 
   void selectedLeague;
   void selectedSeason;
@@ -152,12 +136,6 @@ export default function PluginPage() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       <header className="px-3 py-2 border-b border-border flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <img
-            src={PLUGIN_LOGO}
-            alt="Logo"
-            className="w-6 h-6 rounded object-cover flex-shrink-0"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
           <span className="text-sm font-semibold leading-tight">Tabela de Futebol</span>
           {isPhotopea ? (
             <Badge variant="outline" className="text-xs text-green-600 border-green-500">Photopea</Badge>
@@ -165,9 +143,14 @@ export default function PluginPage() {
             <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500">Prévia</Badge>
           )}
         </div>
-        {updatedCount > 0 && (
-          <Badge variant="secondary" className="text-xs">{updatedCount}/{standings.length} atualizados</Badge>
-        )}
+        <div className="flex items-center gap-2">
+          {currentRound !== null && (
+            <Badge variant="secondary" className="text-xs">Rodada {currentRound}</Badge>
+          )}
+          {updatedCount > 0 && (
+            <Badge variant="secondary" className="text-xs">{updatedCount}/{standings.length} atualizados</Badge>
+          )}
+        </div>
       </header>
 
       <div className="px-3 py-2 border-b border-border">
@@ -237,7 +220,7 @@ export default function PluginPage() {
                 <Separator orientation="vertical" className="h-4" />
                 <button
                   className="h-6 text-xs px-2 border border-border rounded-md hover:bg-muted transition-colors"
-                  onClick={() => handleAddBatch()}
+                  onClick={handleAddBatch}
                 >
                   Próximos {batchSize}
                 </button>
@@ -253,9 +236,7 @@ export default function PluginPage() {
               standings={standings}
               isLoading={isLoading}
               error={error}
-              batchSize={batchSize}
               onAddTeam={handleAddToQueue}
-              onAddBatch={handleAddBatch}
               queuedPositions={updateQueue.map(t => t.position)}
             />
           </div>
@@ -264,10 +245,7 @@ export default function PluginPage() {
         {activeTab === "mapper" && (
           <LayerMapper
             config={layerConfig}
-            scanResult={scanResult}
-            isScanning={isScanning}
             isPhotopea={isPhotopea}
-            onScan={handleScan}
             onConfigChange={setLayerConfig}
           />
         )}

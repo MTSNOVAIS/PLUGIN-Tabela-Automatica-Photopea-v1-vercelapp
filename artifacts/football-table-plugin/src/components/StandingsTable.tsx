@@ -5,9 +5,7 @@ interface StandingsTableProps {
   standings: TeamStanding[];
   isLoading: boolean;
   error: string | null;
-  batchSize: number;
   onAddTeam: (team: TeamStanding) => void;
-  onAddBatch: (startPos?: number) => void;
   queuedPositions: number[];
 }
 
@@ -15,9 +13,7 @@ export function StandingsTable({
   standings,
   isLoading,
   error,
-  batchSize,
   onAddTeam,
-  onAddBatch,
   queuedPositions,
 }: StandingsTableProps) {
   if (isLoading) {
@@ -25,7 +21,7 @@ export function StandingsTable({
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="text-center space-y-2">
           <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-muted-foreground">Buscando dados do Sofascore...</p>
+          <p className="text-xs text-muted-foreground">Buscando dados...</p>
         </div>
       </div>
     );
@@ -41,8 +37,6 @@ export function StandingsTable({
       </div>
     );
   }
-
-  const batches = Math.ceil(standings.length / batchSize);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -68,62 +62,48 @@ export function StandingsTable({
               <th className="w-8 px-1"></th>
             </tr>
           </thead>
-          {standings.map((standing, idx) => {
+          <tbody>
+            {standings.map(standing => {
               const isQueued = queuedPositions.includes(standing.position);
-              const isBatchStart = idx % batchSize === 0;
-
               return (
-                <tbody key={standing.position}>
-                  {isBatchStart && batchSize > 1 && (
-                    <tr className="bg-muted/30">
-                      <td colSpan={9} className="py-0.5">
-                        <button
-                          onClick={() => onAddBatch(standing.position)}
-                          className="w-full text-left px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-                        >
-                          <Layers className="w-3 h-3" />
-                          <span>Lote {Math.floor(idx / batchSize) + 1} de {batches} (pos. {standing.position}–{Math.min(standing.position + batchSize - 1, standings.length)})</span>
-                        </button>
-                      </td>
-                    </tr>
-                  )}
-                  <tr
-                    className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isQueued ? "bg-primary/5" : ""}`}
-                  >
-                    <td className="px-2 py-1 font-medium text-muted-foreground">{standing.position}</td>
-                    <td className="px-2 py-1">
-                      <span className={`font-medium ${isQueued ? "text-primary" : ""}`}>
-                        {standing.team.nameCode || standing.team.name.substring(0, 3).toUpperCase()}
-                      </span>
-                      <span className="text-muted-foreground ml-1 hidden sm:inline">{standing.team.name}</span>
-                    </td>
-                    <td className="px-1 py-1 text-center text-muted-foreground">{standing.played}</td>
-                    <td className="px-1 py-1 text-center text-green-600">{standing.wins}</td>
-                    <td className="px-1 py-1 text-center text-yellow-600">{standing.draws}</td>
-                    <td className="px-1 py-1 text-center text-red-600">{standing.losses}</td>
-                    <td className="px-1 py-1 text-center text-muted-foreground">
-                      {standing.goalDifference >= 0 ? `+${standing.goalDifference}` : standing.goalDifference}
-                    </td>
-                    <td className="px-1 py-1 text-center font-bold text-primary">{standing.points}</td>
-                    <td className="px-1 py-1">
-                      <button
-                        onClick={() => onAddTeam(standing)}
-                        disabled={isQueued}
-                        className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
-                          isQueued
-                            ? "text-primary bg-primary/10 cursor-default"
-                            : "text-muted-foreground hover:text-primary hover:bg-primary/10"
-                        }`}
-                        title={isQueued ? "Já na fila" : "Adicionar à fila"}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
+                <tr
+                  key={standing.position}
+                  className={`border-b border-border/50 hover:bg-muted/30 transition-colors ${isQueued ? "bg-primary/5" : ""}`}
+                >
+                  <td className="px-2 py-1 font-medium text-muted-foreground">{standing.position}</td>
+                  <td className="px-2 py-1">
+                    <span className={`font-medium ${isQueued ? "text-primary" : ""}`}>
+                      {standing.team.nameCode || standing.team.name.substring(0, 3).toUpperCase()}
+                    </span>
+                    <span className="text-muted-foreground ml-1 hidden sm:inline">{standing.team.name}</span>
+                  </td>
+                  <td className="px-1 py-1 text-center text-muted-foreground">{standing.played}</td>
+                  <td className="px-1 py-1 text-center text-green-600">{standing.wins}</td>
+                  <td className="px-1 py-1 text-center text-yellow-600">{standing.draws}</td>
+                  <td className="px-1 py-1 text-center text-red-600">{standing.losses}</td>
+                  <td className="px-1 py-1 text-center text-muted-foreground">
+                    {standing.goalDifference >= 0 ? `+${standing.goalDifference}` : standing.goalDifference}
+                  </td>
+                  <td className="px-1 py-1 text-center font-bold text-primary">{standing.points}</td>
+                  <td className="px-1 py-1">
+                    <button
+                      onClick={() => onAddTeam(standing)}
+                      disabled={isQueued}
+                      className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${
+                        isQueued
+                          ? "text-primary bg-primary/10 cursor-default"
+                          : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      }`}
+                      title={isQueued ? "Já na fila" : "Adicionar à fila"}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
               );
             })}
-          </table>
+          </tbody>
+        </table>
       </div>
     </div>
   );
