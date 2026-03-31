@@ -284,10 +284,6 @@ export default function PluginPage() {
           />
         )}
       </div>
-
-      <div className="px-3 py-1 border-t border-border flex justify-center">
-        <span className="text-[10px] text-muted-foreground/50">v2.0</span>
-      </div>
     </div>
   );
 }

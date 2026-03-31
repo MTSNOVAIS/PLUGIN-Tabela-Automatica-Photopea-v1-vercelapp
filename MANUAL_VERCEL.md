@@ -1,4 +1,3 @@
-01
 # Manual de Deploy no Vercel
 
 Este guia explica como hospedar o **Plugin Tabela de Futebol** no Vercel.
