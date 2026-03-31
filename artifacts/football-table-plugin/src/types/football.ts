@@ -64,8 +64,8 @@ export const LAYER_TYPE_LABELS: Record<LayerType, string> = {
   goal_diff: "Saldo",
 };
 
-export const REQUIRED_FIELDS: LayerType[] = ["position", "team_name", "points"];
-export const OPTIONAL_FIELDS: LayerType[] = ["played", "wins", "draws", "losses", "goals_for", "goals_against", "goal_diff", "team_short"];
+export const REQUIRED_FIELDS: LayerType[] = ["position", "team_name", "points", "played", "goal_diff"];
+export const OPTIONAL_FIELDS: LayerType[] = ["wins", "draws", "losses", "goals_for", "goals_against", "team_short"];
 
 export interface LayerConfig {
   groupPrefix: string;
