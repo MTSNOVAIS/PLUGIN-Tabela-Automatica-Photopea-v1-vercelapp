@@ -8,11 +8,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isReplit = process.env.REPL_ID !== undefined;
 const isProduction = process.env.NODE_ENV === "production";
+const isVercel = process.env.VERCEL === "1";
 
 const rawPort = process.env.PORT;
 const port = rawPort ? Number(rawPort) : 3000;
 
 const basePath = process.env.BASE_PATH ?? "/";
+
+// On Vercel: output to workspace-root/public (Vercel's default output dir)
+// Locally:   output to dist/public inside the plugin folder
+const outDir = isVercel
+  ? path.resolve(__dirname, "../../public")
+  : path.resolve(__dirname, "dist/public");
 
 export default defineConfig({
   base: basePath,
@@ -44,7 +51,7 @@ export default defineConfig({
   },
   root: __dirname,
   build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+    outDir,
     emptyOutDir: true,
   },
   server: {

@@ -48,7 +48,7 @@ Ao importar, o Vercel lerá o arquivo `vercel.json` automaticamente. **Não é n
 | Framework | None (desativado via `vercel.json`) |
 | Install Command | `pnpm install` |
 | Build Command | `pnpm --filter @workspace/football-table-plugin run build` |
-| Output Directory | `artifacts/football-table-plugin/dist/public` |
+| Output Directory | `public` |
 
 > **Importante:** O arquivo `vercel.json` já contém `"framework": null`, que desativa a detecção automática de framework. Isso é necessário porque o Vercel, ao ver um monorepo com múltiplos pacotes, pode confundir o projeto com um app Node.js em vez de um site estático. **Não altere essa configuração.**
 
@@ -120,7 +120,7 @@ Toda vez que você fizer um push (enviar alterações) para o repositório Git, 
 | Problema | Solução |
 |---|---|
 | Erro: "No entrypoint found in output directory" | O Vercel está tratando o projeto como Node.js. Confirme que o `vercel.json` na raiz contém `"framework": null`. |
-| Erro: "No Output Directory named 'public' found" | O build falhou internamente. Verifique se o Vercel está usando Node.js 20 ou superior em **Settings → General → Node.js Version**. Versões anteriores ao Node.js 21.2 não suportam `import.meta.dirname` — o `vite.config.ts` já está corrigido para usar `fileURLToPath` como alternativa compatível. |
+| Erro: "No Output Directory named 'public' found" | O Vercel não está encontrando o diretório de saída do build. Confirme que o `vercel.json` tem `"outputDirectory": "public"`. O `vite.config.ts` já está configurado para detectar a variável `VERCEL=1` e gerar o output na pasta `public/` na raiz do projeto. |
 | Build falhou com erro de `pnpm` | Certifique-se de que o Vercel está usando Node.js 20. Vá em **Settings → General → Node.js Version** e selecione `20.x`. |
 | API retornando erro 404 | Verifique se os arquivos `api/sofascore.js` e `api/healthz.js` estão na raiz do repositório. |
 | Plugin não carrega no Photopea | Certifique-se de que a URL usada no Photopea é exatamente a URL do Vercel (com `https://`). |
