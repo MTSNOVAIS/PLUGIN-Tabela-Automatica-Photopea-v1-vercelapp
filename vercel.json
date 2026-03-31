@@ -1,3 +1,4 @@
 {
+  "_comment": "Para deploy no Vercel, configure Root Directory como: artifacts/football-table-plugin",
   "version": 2
 }
