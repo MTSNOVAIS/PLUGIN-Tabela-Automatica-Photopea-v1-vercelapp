@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, ChevronDown, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandInput, CommandList } from "@/components/ui/command";
@@ -28,8 +28,8 @@ const ALL_GROUPS = groupByCountry(POPULAR_LEAGUES);
 
 export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [selectedLeague, setSelectedLeague] = useState<League | null>(POPULAR_LEAGUES[0]);
-  const [selectedSeason, setSelectedSeason] = useState<Season | null>(POPULAR_LEAGUES[0].seasons[0]);
+  const [selectedLeague, setSelectedLeague] = useState<League | null>(null);
+  const [selectedSeason, setSelectedSeason] = useState<Season | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
 
@@ -47,12 +47,6 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
         }))
         .filter(g => g.leagues.length > 0)
     : ALL_GROUPS;
-
-  useEffect(() => {
-    if (selectedLeague && selectedSeason) {
-      onLeagueChange(selectedLeague.id, selectedSeason.id);
-    }
-  }, []);
 
   const toggleCountry = (country: string) => {
     setExpandedCountries(prev => {

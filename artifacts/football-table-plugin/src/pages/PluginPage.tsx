@@ -17,6 +17,10 @@ const DEFAULT_CONFIG: LayerConfig = {
   fieldMap: {},
 };
 
+function formatTime(date: Date): string {
+  return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+
 export default function PluginPage() {
   const { toast } = useToast();
   const [selectedLeague, setSelectedLeague] = useState<string>("");
@@ -29,8 +33,10 @@ export default function PluginPage() {
   const [activeTab, setActiveTab] = useState<"standings" | "mapper" | "queue">("standings");
   const [nextBatchIndex, setNextBatchIndex] = useState(0);
 
-  const { standings, isLoading, error, fetchStandings } = useSofascore();
+  const { standings, isLoading, error, lastUpdated, fetchStandings } = useSofascore();
   const { applyUpdates, isPhotopea } = usePhotopea();
+
+  const hasLeague = selectedLeague !== "";
 
   const currentRound = standings.length > 0
     ? Math.max(...standings.map(s => s.played))
@@ -127,22 +133,26 @@ export default function PluginPage() {
     }
   }, [updateQueue, layerConfig, applyUpdates, isPhotopea, toast]);
 
-  void selectedLeague;
   void selectedSeason;
 
   const progress = standings.length > 0 ? (updatedCount / standings.length) * 100 : 0;
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="px-3 py-2 border-b border-border flex items-center justify-center relative">
-        {currentRound !== null && (
-          <Badge variant="secondary" className="text-xs">Rodada {currentRound}</Badge>
-        )}
-        {updatedCount > 0 && (
-          <div className="absolute right-3">
-            <Badge variant="secondary" className="text-xs">{updatedCount}/{standings.length} atualizados</Badge>
-          </div>
-        )}
+      <header className="px-3 py-2 border-b border-border flex items-center justify-between">
+        <div className="flex-1" />
+        <div className="flex items-center gap-1.5">
+          {currentRound !== null && (
+            <Badge variant="secondary" className="text-xs">Rodada {currentRound}</Badge>
+          )}
+        </div>
+        <div className="flex-1 flex justify-end">
+          {lastUpdated && (
+            <span className="text-[10px] text-muted-foreground">
+              Atualizado às {formatTime(lastUpdated)}
+            </span>
+          )}
+        </div>
       </header>
 
       <div className="px-3 py-2 border-b border-border">
@@ -175,83 +185,97 @@ export default function PluginPage() {
         </div>
       )}
 
-      <div className="flex border-b border-border">
-        {(["standings", "mapper", "queue"] as const).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
-              activeTab === tab
-                ? "border-b-2 border-primary text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab === "standings" ? "Tabela" : tab === "mapper" ? "Layers" : `Fila (${updateQueue.length})`}
-          </button>
-        ))}
-      </div>
+      {!hasLeague && !isLoading && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="text-4xl">⚽</div>
+          <p className="text-sm font-medium text-foreground">Selecione uma liga</p>
+          <p className="text-xs text-muted-foreground">
+            Escolha um país e uma liga acima para carregar a tabela de classificação.
+          </p>
+        </div>
+      )}
 
-      <div className="flex-1 overflow-hidden">
-        {activeTab === "standings" && (
-          <div className="flex flex-col h-full">
-            {standings.length > 0 && (
-              <div className="px-3 py-2 border-b border-border flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs text-muted-foreground">Lote de</span>
-                  <Select value={String(batchSize)} onValueChange={v => setBatchSize(Number(v))}>
-                    <SelectTrigger className="h-6 w-14 text-xs px-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 5, 10].map(n => (
-                        <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <button
-                  className="h-6 text-xs px-2 border border-border rounded-md hover:bg-muted transition-colors"
-                  onClick={handleAddBatch}
-                >
-                  Próximos {batchSize}
-                </button>
-                <button
-                  className="h-6 text-xs px-2 border border-border rounded-md hover:bg-muted transition-colors"
-                  onClick={handleAddAll}
-                >
-                  Todos
-                </button>
+      {hasLeague && (
+        <>
+          <div className="flex border-b border-border">
+            {(["standings", "mapper", "queue"] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === tab
+                    ? "border-b-2 border-primary text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab === "standings" ? "Tabela" : tab === "mapper" ? "Layers" : `Fila (${updateQueue.length})`}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex-1 overflow-hidden">
+            {activeTab === "standings" && (
+              <div className="flex flex-col h-full">
+                {standings.length > 0 && (
+                  <div className="px-3 py-2 border-b border-border flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">Lote de</span>
+                      <Select value={String(batchSize)} onValueChange={v => setBatchSize(Number(v))}>
+                        <SelectTrigger className="h-6 w-14 text-xs px-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 2, 3, 5, 10].map(n => (
+                            <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Separator orientation="vertical" className="h-4" />
+                    <button
+                      className="h-6 text-xs px-2 border border-border rounded-md hover:bg-muted transition-colors"
+                      onClick={handleAddBatch}
+                    >
+                      Próximos {batchSize}
+                    </button>
+                    <button
+                      className="h-6 text-xs px-2 border border-border rounded-md hover:bg-muted transition-colors"
+                      onClick={handleAddAll}
+                    >
+                      Todos
+                    </button>
+                  </div>
+                )}
+                <StandingsTable
+                  standings={standings}
+                  isLoading={isLoading}
+                  error={error}
+                  onAddTeam={handleAddToQueue}
+                  queuedPositions={updateQueue.map(t => t.position)}
+                />
               </div>
             )}
-            <StandingsTable
-              standings={standings}
-              isLoading={isLoading}
-              error={error}
-              onAddTeam={handleAddToQueue}
-              queuedPositions={updateQueue.map(t => t.position)}
-            />
+
+            {activeTab === "mapper" && (
+              <LayerMapper
+                config={layerConfig}
+                isPhotopea={isPhotopea}
+                onConfigChange={setLayerConfig}
+              />
+            )}
+
+            {activeTab === "queue" && (
+              <UpdateQueue
+                queue={updateQueue}
+                onRemove={handleRemoveFromQueue}
+                onClear={handleClearQueue}
+                onApply={handleApplyUpdates}
+                isUpdating={isUpdating}
+              />
+            )}
           </div>
-        )}
-
-        {activeTab === "mapper" && (
-          <LayerMapper
-            config={layerConfig}
-            isPhotopea={isPhotopea}
-            onConfigChange={setLayerConfig}
-          />
-        )}
-
-        {activeTab === "queue" && (
-          <UpdateQueue
-            queue={updateQueue}
-            onRemove={handleRemoveFromQueue}
-            onClear={handleClearQueue}
-            onApply={handleApplyUpdates}
-            isUpdating={isUpdating}
-          />
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 }

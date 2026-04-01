@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { TeamStanding } from "@/types/football";
 
 const PROXY_BASE = "/api/sofascore";
 const ESPN_BASE = "https://site.api.espn.com/apis/v2/sports/soccer";
+const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 function buildEspnUrl(leagueSlug: string): string {
   return `${ESPN_BASE}/${leagueSlug}/standings`;
@@ -87,12 +88,19 @@ export function useSofascore() {
   const [standings, setStandings] = useState<TeamStanding[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchStandings = useCallback(async (leagueId: string, _seasonId: string) => {
+  const currentLeagueId = useRef<string | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchStandings = useCallback(async (leagueId: string, _seasonId: string, silent = false) => {
     if (!leagueId) return;
-    setIsLoading(true);
-    setError(null);
-    setStandings([]);
+
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+      setStandings([]);
+    }
 
     try {
       const url = buildEspnUrl(leagueId);
@@ -105,16 +113,43 @@ export function useSofascore() {
 
       if (parsed.length > 0) {
         setStandings(parsed);
+        setLastUpdated(new Date());
+        if (silent) setError(null);
       } else {
-        throw new Error("Sem dados na resposta");
+        if (!silent) throw new Error("Sem dados na resposta");
       }
     } catch (err) {
-      setError(`Erro ao carregar dados: ${err instanceof Error ? err.message : "falha na conexão"}`);
-      setStandings([]);
+      if (!silent) {
+        setError(`Erro ao carregar dados: ${err instanceof Error ? err.message : "falha na conexão"}`);
+        setStandings([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
-  return { standings, isLoading, error, fetchStandings, parseEspnGroupStandings };
+  const startAutoRefresh = useCallback((leagueId: string, seasonId: string) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    currentLeagueId.current = leagueId;
+
+    intervalRef.current = setInterval(() => {
+      if (currentLeagueId.current) {
+        fetchStandings(currentLeagueId.current, seasonId, true);
+      }
+    }, AUTO_REFRESH_MS);
+  }, [fetchStandings]);
+
+  const loadLeague = useCallback(async (leagueId: string, seasonId: string) => {
+    currentLeagueId.current = leagueId;
+    await fetchStandings(leagueId, seasonId, false);
+    startAutoRefresh(leagueId, seasonId);
+  }, [fetchStandings, startAutoRefresh]);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  return { standings, isLoading, error, lastUpdated, fetchStandings: loadLeague, parseEspnGroupStandings };
 }
