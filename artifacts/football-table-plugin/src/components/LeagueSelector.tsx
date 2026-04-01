@@ -1,6 +1,18 @@
-import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect, useRef } from "react";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { POPULAR_LEAGUES, type League, type Season } from "@/types/football";
+import { cn } from "@/lib/utils";
 
 interface LeagueSelectorProps {
   onLeagueChange: (leagueId: string, seasonId: string) => void;
@@ -16,11 +28,24 @@ function groupByCountry(leagues: League[]): { country: string; leagues: League[]
   return Array.from(map.entries()).map(([country, leagues]) => ({ country, leagues }));
 }
 
-const GROUPS = groupByCountry(POPULAR_LEAGUES);
+function filterLeagues(query: string): { country: string; leagues: League[] }[] {
+  if (!query.trim()) return groupByCountry(POPULAR_LEAGUES);
+  const q = query.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const filtered = POPULAR_LEAGUES.filter(l => {
+    const name = l.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const country = l.country.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return name.includes(q) || country.includes(q) || l.id.includes(q);
+  });
+  return groupByCountry(filtered);
+}
 
 export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProps) {
+  const [open, setOpen] = useState(false);
   const [selectedLeague, setSelectedLeague] = useState<League | null>(POPULAR_LEAGUES[0]);
   const [selectedSeason, setSelectedSeason] = useState<Season | null>(POPULAR_LEAGUES[0].seasons[0]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredGroups = filterLeagues(searchQuery);
 
   useEffect(() => {
     if (selectedLeague && selectedSeason) {
@@ -28,9 +53,11 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
     }
   }, []);
 
-  const handleLeagueChange = (leagueId: string) => {
+  const handleLeagueSelect = (leagueId: string) => {
     const league = POPULAR_LEAGUES.find(l => l.id === leagueId) || null;
     setSelectedLeague(league);
+    setOpen(false);
+    setSearchQuery("");
     if (league && league.seasons.length > 0) {
       setSelectedSeason(league.seasons[0]);
       onLeagueChange(league.id, league.seasons[0].id);
@@ -46,7 +73,7 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
     }
   };
 
-  const handleSearch = () => {
+  const handleRefresh = () => {
     if (selectedLeague && selectedSeason) {
       onLeagueChange(selectedLeague.id, selectedSeason.id);
     }
@@ -55,28 +82,61 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
   return (
     <div className="space-y-1.5">
       <div className="flex gap-1.5">
-        <Select value={selectedLeague?.id || ""} onValueChange={handleLeagueChange}>
-          <SelectTrigger className="h-7 text-xs flex-1">
-            <SelectValue placeholder="Selecione a liga" />
-          </SelectTrigger>
-          <SelectContent>
-            {GROUPS.map((group, idx) => (
-              <div key={group.country}>
-                {idx > 0 && <SelectSeparator />}
-                <SelectGroup>
-                  <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1">
-                    {group.country}
-                  </SelectLabel>
-                  {group.leagues.map(league => (
-                    <SelectItem key={league.id} value={league.id} className="text-xs pl-4">
-                      {league.name}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </div>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              role="combobox"
+              aria-expanded={open}
+              className="h-7 text-xs flex-1 flex items-center justify-between rounded-md border border-input bg-background px-2 py-1 hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50 min-w-0"
+              disabled={isLoading}
+            >
+              <span className="truncate">
+                {selectedLeague ? selectedLeague.name : "Selecione a liga"}
+              </span>
+              <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 p-0" align="start">
+            <Command shouldFilter={false}>
+              <CommandInput
+                placeholder="Buscar liga ou país..."
+                value={searchQuery}
+                onValueChange={setSearchQuery}
+                className="h-8 text-xs"
+              />
+              <CommandList>
+                {filteredGroups.length === 0 && (
+                  <CommandEmpty className="py-4 text-xs text-muted-foreground">
+                    Nenhuma liga encontrada.
+                  </CommandEmpty>
+                )}
+                {filteredGroups.map((group, idx) => (
+                  <div key={group.country}>
+                    {idx > 0 && <CommandSeparator />}
+                    <CommandGroup heading={group.country}>
+                      {group.leagues.map(league => (
+                        <CommandItem
+                          key={league.id}
+                          value={league.id}
+                          onSelect={handleLeagueSelect}
+                          className="text-xs gap-1.5"
+                        >
+                          <Check
+                            className={cn(
+                              "h-3 w-3 shrink-0",
+                              selectedLeague?.id === league.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {league.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </div>
+                ))}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         {selectedLeague && selectedLeague.seasons.length > 1 && (
           <Select value={selectedSeason?.id || ""} onValueChange={handleSeasonChange}>
@@ -94,7 +154,7 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
         )}
 
         <button
-          onClick={handleSearch}
+          onClick={handleRefresh}
           disabled={isLoading || !selectedLeague || !selectedSeason}
           className="h-7 px-2 text-xs rounded-md bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-opacity flex-shrink-0"
         >
