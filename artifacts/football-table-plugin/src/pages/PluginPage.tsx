@@ -134,23 +134,15 @@ export default function PluginPage() {
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <header className="px-3 py-2 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold leading-tight">Tabela de Futebol</span>
-          {isPhotopea ? (
-            <Badge variant="outline" className="text-xs text-green-600 border-green-500">Photopea</Badge>
-          ) : (
-            <Badge variant="outline" className="text-xs text-yellow-600 border-yellow-500">Prévia</Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {currentRound !== null && (
-            <Badge variant="secondary" className="text-xs">Rodada {currentRound}</Badge>
-          )}
-          {updatedCount > 0 && (
+      <header className="px-3 py-2 border-b border-border flex items-center justify-center relative">
+        {currentRound !== null && (
+          <Badge variant="secondary" className="text-xs">Rodada {currentRound}</Badge>
+        )}
+        {updatedCount > 0 && (
+          <div className="absolute right-3">
             <Badge variant="secondary" className="text-xs">{updatedCount}/{standings.length} atualizados</Badge>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       <div className="px-3 py-2 border-b border-border">

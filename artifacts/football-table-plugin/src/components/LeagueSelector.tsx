@@ -1,11 +1,22 @@
 import { useState, useEffect } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { POPULAR_LEAGUES, type League, type Season } from "@/types/football";
 
 interface LeagueSelectorProps {
   onLeagueChange: (leagueId: string, seasonId: string) => void;
   isLoading: boolean;
 }
+
+function groupByCountry(leagues: League[]): { country: string; leagues: League[] }[] {
+  const map = new Map<string, League[]>();
+  for (const league of leagues) {
+    if (!map.has(league.country)) map.set(league.country, []);
+    map.get(league.country)!.push(league);
+  }
+  return Array.from(map.entries()).map(([country, leagues]) => ({ country, leagues }));
+}
+
+const GROUPS = groupByCountry(POPULAR_LEAGUES);
 
 export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProps) {
   const [selectedLeague, setSelectedLeague] = useState<League | null>(POPULAR_LEAGUES[0]);
@@ -22,6 +33,7 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
     setSelectedLeague(league);
     if (league && league.seasons.length > 0) {
       setSelectedSeason(league.seasons[0]);
+      onLeagueChange(league.id, league.seasons[0].id);
     }
   };
 
@@ -48,11 +60,20 @@ export function LeagueSelector({ onLeagueChange, isLoading }: LeagueSelectorProp
             <SelectValue placeholder="Selecione a liga" />
           </SelectTrigger>
           <SelectContent>
-            {POPULAR_LEAGUES.map(league => (
-              <SelectItem key={league.id} value={league.id} className="text-xs">
-                <span className="font-medium">{league.name}</span>
-                <span className="text-muted-foreground ml-1">· {league.country}</span>
-              </SelectItem>
+            {GROUPS.map((group, idx) => (
+              <div key={group.country}>
+                {idx > 0 && <SelectSeparator />}
+                <SelectGroup>
+                  <SelectLabel className="text-xs font-semibold text-muted-foreground px-2 py-1">
+                    {group.country}
+                  </SelectLabel>
+                  {group.leagues.map(league => (
+                    <SelectItem key={league.id} value={league.id} className="text-xs pl-4">
+                      {league.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </div>
             ))}
           </SelectContent>
         </Select>
