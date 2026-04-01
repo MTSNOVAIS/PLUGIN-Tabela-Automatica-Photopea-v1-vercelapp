@@ -9,27 +9,6 @@ interface LayerMapperProps {
   onConfigChange: (config: LayerConfig) => void;
 }
 
-interface FieldRowProps {
-  field: LayerType;
-  value: string;
-  onChange: (field: LayerType, value: string) => void;
-}
-
-function FieldRow({ field, value, onChange }: FieldRowProps) {
-  return (
-    <div className="flex items-center gap-2 py-1.5 border-b border-border/40 last:border-0">
-      <span className="text-xs text-foreground w-24 flex-shrink-0">{LAYER_TYPE_LABELS[field]}</span>
-      <input
-        type="text"
-        placeholder="Nome do layer..."
-        value={value}
-        onChange={e => onChange(field, e.target.value)}
-        className="flex-1 h-7 text-xs px-2 border border-border rounded-md bg-background font-mono"
-      />
-    </div>
-  );
-}
-
 const NONE = "__none__";
 
 export function LayerMapper({ config, isPhotopea, onConfigChange }: LayerMapperProps) {
@@ -50,6 +29,22 @@ export function LayerMapper({ config, isPhotopea, onConfigChange }: LayerMapperP
   };
 
   const configuredCount = Object.values(config.fieldMap).filter(Boolean).length;
+
+  function FieldRow({ field }: { field: LayerType }) {
+    const current = config.fieldMap[field] ?? "";
+    return (
+      <div className="flex items-center gap-2 py-1.5 border-b border-border/40 last:border-0">
+        <span className="text-xs text-foreground w-24 flex-shrink-0">{LAYER_TYPE_LABELS[field]}</span>
+        <input
+          type="text"
+          placeholder="Nome do layer..."
+          value={current === NONE ? "" : current}
+          onChange={e => handleFieldMap(field, e.target.value)}
+          className="flex-1 h-7 text-xs px-2 border border-border rounded-md bg-background font-mono"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -76,14 +71,7 @@ export function LayerMapper({ config, isPhotopea, onConfigChange }: LayerMapperP
 
       <div className="px-3 py-2 border-b border-border space-y-1">
         <p className="text-xs font-semibold text-foreground mb-1">Campos obrigatórios</p>
-        {REQUIRED_FIELDS.map(field => (
-          <FieldRow
-            key={field}
-            field={field}
-            value={config.fieldMap[field] ?? ""}
-            onChange={handleFieldMap}
-          />
-        ))}
+        {REQUIRED_FIELDS.map(field => <FieldRow key={field} field={field} />)}
       </div>
 
       <div className="px-3 py-2">
@@ -96,14 +84,7 @@ export function LayerMapper({ config, isPhotopea, onConfigChange }: LayerMapperP
         </button>
         {showOptional && (
           <div className="space-y-0">
-            {OPTIONAL_FIELDS.map(field => (
-              <FieldRow
-                key={field}
-                field={field}
-                value={config.fieldMap[field] ?? ""}
-                onChange={handleFieldMap}
-              />
-            ))}
+            {OPTIONAL_FIELDS.map(field => <FieldRow key={field} field={field} />)}
           </div>
         )}
       </div>
