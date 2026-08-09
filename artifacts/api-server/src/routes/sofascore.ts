@@ -4,9 +4,8 @@ const router: IRouter = Router();
 
 const ALLOWED_HOSTS = [
   "site.api.espn.com",
-  "api.sofascore.com",
-  "www.sofascore.com",
-  "sofascore.com",
+  "www.thesportsdb.com",
+  "thesportsdb.com",
 ];
 
 const ESPN_HEADERS = {
@@ -17,12 +16,10 @@ const ESPN_HEADERS = {
   "Pragma": "no-cache",
 };
 
-const SOFASCORE_HEADERS = {
+const THESPORTSDB_HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
   "Accept": "application/json, text/plain, */*",
   "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8",
-  "Origin": "https://www.sofascore.com",
-  "Referer": "https://www.sofascore.com/",
 };
 
 router.get("/sofascore", async (req, res) => {
@@ -45,9 +42,8 @@ router.get("/sofascore", async (req, res) => {
     return;
   }
 
-  // Seleciona os headers dinamicamente dependendo do host
-  const requestHeaders = parsed.hostname.includes("sofascore") 
-    ? SOFASCORE_HEADERS 
+  const requestHeaders = parsed.hostname.includes("thesportsdb") 
+    ? THESPORTSDB_HEADERS 
     : ESPN_HEADERS;
 
   try {
