@@ -59,8 +59,13 @@ router.get("/sofascore", async (req, res) => {
     const text = await response.text();
 
     if (!response.ok) {
-      req.log.warn({ status: response.status, url: targetUrl }, "Upstream API error");
-      res.status(response.status).json({ error: `API returned ${response.status}`, detail: text.substring(0, 300) });
+      if (req.log && typeof req.log.warn === "function") {
+        req.log.warn({ status: response.status, url: targetUrl }, "Upstream API error");
+      }
+      res.status(response.status).json({ 
+        error: `API returned ${response.status}`, 
+        detail: text.substring(0, 300) 
+      });
       return;
     }
 
@@ -75,7 +80,9 @@ router.get("/sofascore", async (req, res) => {
     res.setHeader("Cache-Control", "public, max-age=120");
     res.json(data);
   } catch (err) {
-    req.log.error({ err }, "Proxy fetch error");
+    if (req.log && typeof req.log.error === "function") {
+      req.log.error({ err }, "Proxy fetch error");
+    }
     res.status(500).json({ error: "Failed to fetch from upstream" });
   }
 });
