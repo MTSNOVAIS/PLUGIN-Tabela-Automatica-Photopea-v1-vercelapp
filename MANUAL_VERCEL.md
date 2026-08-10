@@ -123,4 +123,4 @@ Toda vez que você fizer um push (enviar alterações) para o repositório Git, 
 | Build falhou com erro de `pnpm` | Certifique-se de que o Vercel está usando Node.js 20. Vá em **Settings → General → Node.js Version** e selecione `20.x`. |
 | API retornando erro 404 | Verifique se os arquivos `api/sofascore.js` e `api/healthz.js` estão na raiz do repositório. |
 | Plugin não carrega no Photopea | Certifique-se de que a URL usada no Photopea é exatamente a URL do Vercel (com `https://`). |
-| Dados de classificação não aparecem | A API do ESPN pode estar temporariamente fora do ar. Aguarde alguns minutos e tente novamente. |
+| Dados de classificação não aparecem | Verifique no navegador se `/api/sofascore` está respondendo. O proxy usa `site.web.api.espn.com`, pois `site.api.espn.com` pode retornar 403 em ambientes serverless. |

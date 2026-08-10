@@ -4,6 +4,7 @@ const router: IRouter = Router();
 
 const ALLOWED_HOSTS = [
   "site.api.espn.com",
+  "site.web.api.espn.com",
   "www.thesportsdb.com",
   "thesportsdb.com",
 ];

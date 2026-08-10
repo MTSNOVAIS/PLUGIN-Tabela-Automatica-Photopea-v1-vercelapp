@@ -44,7 +44,7 @@ A Photopea-compatible plugin for automating football standings table updates.
 
 **Features:**
 - League/season selector (Brasileirão, Premier League, La Liga, etc.)
-- Data from Sofascore API (with fallback mock data)
+- Data from the ESPN standings API through the serverless proxy
 - Batch update system: add 1, 2, 3, 5 or 10 positions at a time
 - Layer mapper: reads PSD layers and maps them to standings fields
 - Queue system: review changes before applying
@@ -69,7 +69,7 @@ A Photopea-compatible plugin for automating football standings table updates.
 
 Express 5 API server. Routes:
 - `GET /api/healthz` — health check
-- `GET /api/sofascore?url=<encoded_url>` — proxy for Sofascore API (adds proper headers)
+- `GET /api/sofascore?url=<encoded_url>` — proxy for the ESPN standings API (adds proper headers)
 
 ## TypeScript & Composite Projects
 

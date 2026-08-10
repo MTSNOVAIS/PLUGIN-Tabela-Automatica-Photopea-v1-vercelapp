@@ -1,5 +1,6 @@
 const ALLOWED_HOSTS = [
   "site.api.espn.com",
+  "site.web.api.espn.com",
   "www.sofascore.com",
   "sofascore.com",
 ];

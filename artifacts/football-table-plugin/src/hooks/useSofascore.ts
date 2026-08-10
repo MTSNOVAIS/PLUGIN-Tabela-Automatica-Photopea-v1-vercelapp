@@ -2,7 +2,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import type { TeamStanding } from "@/types/football";
 
 const PROXY_BASE = "/api/sofascore";
-const ESPN_BASE = "https://site.api.espn.com/apis/v2/sports/soccer";
+// The site.api.espn.com host currently returns 403 from several serverless
+// environments. The web API exposes the same standings contract without that
+// CDN restriction.
+const ESPN_BASE = "https://site.web.api.espn.com/apis/v2/sports/soccer";
 const AUTO_REFRESH_MS = 5 * 60 * 1000;
 
 function buildEspnUrl(leagueSlug: string): string {
