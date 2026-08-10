@@ -11,10 +11,21 @@ app.use(
     logger,
     serializers: {
       req(req) {
+        // Uso seguro do WHATWG URL para evitar qualquer alerta de url.parse() interno
+        let cleanUrl = req.url;
+        try {
+          if (req.url) {
+            const parsed = new URL(req.url, `http://${req.headers?.host || "localhost"}`);
+            cleanUrl = parsed.pathname;
+          }
+        } catch {
+          cleanUrl = req.url?.split("?")[0];
+        }
+
         return {
           id: req.id,
           method: req.method,
-          url: req.url?.split("?")[0],
+          url: cleanUrl,
         };
       },
       res(res) {
@@ -25,6 +36,7 @@ app.use(
     },
   }),
 );
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
